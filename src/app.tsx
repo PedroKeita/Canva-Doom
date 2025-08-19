@@ -29,7 +29,7 @@ function ObjectPanel() {
         <FormField
           label="Select a WAD"
           control={(props) => (
-                <FileInput accept={['.wad']} disabled={wadLoaded}
+                <FileInput accept={['.wad', '.WAD']} disabled={wadLoaded}
                   onDropAcceptedFiles={(event) => openWad(event)}
                 />
           )}
@@ -72,7 +72,7 @@ function openWad(event) {
       const reader = new FileReader();
       reader.onload = function(event) {
         const uint8File = new Uint8Array(event.target.result);
-        let stream = FS.open("/" + file.name, "w+");
+        let stream = FS.open("/" + (file.name).toLowerCase(), "w+");
         FS.write(stream, uint8File, 0, file.size, 0);
         FS.close(stream);
         Module.ccall(
@@ -131,22 +131,57 @@ async function insertEndoom(range) {
   });
 }
 
+var ansiColors = [
+  "#000000",
+  "#0000AA",
+  "#00AA00",
+  "#00AAAA",
+  "#AA0000",
+  "#AA00AA",
+  "#AA5500",
+  "#AAAAAA",
+  "#555555",
+  "#5555FF",
+  "#55FF55",
+  "#55FFFF",
+  "#FF5555",
+  "#FF55FF",
+  "#FFFF55",
+  "#FFFFFF" 
+];
+
 function drawEndoom(endoom_ptr) {
   let endoomData = Module.HEAPU8.subarray(endoom_ptr, endoom_ptr + 4000);
-  const range = createRichtextRange();
+  // const rangeBG = createRichtextRange();
+  const rangeFG = createRichtextRange();
   
   for (var y = 0; y < 25; y++) {
     var textRow = "";
     for (var x = 0; x < 160; x += 2) {
-      if (endoomData[y*160 + x] <= 0x7A) {
-        textRow += String.fromCharCode(endoomData[y*160 + x]);
+      let char = endoomData[y*160 + x];
+      let str = String.fromCharCode(char);
+      let color = endoomData[y*160 + x + 1];
+
+      // rangeBG.appendText("█", {color: ansiColors[(color >> 4) & 0x7]});
+      if (char <= 0x7A) {
+        textRow += str;
+        rangeFG.appendText(str, {strikethrough: "none", color: ansiColors[color & 0xF]});
+      } else if (char == 0xC4) {
+        textRow += "-";
+        rangeFG.appendText(" ", {strikethrough: "strikethrough", color: ansiColors[color & 0xF]});
+      } else {
+        textRow += " ";
+        rangeFG.appendText(" ", {strikethrough: "none", color: ansiColors[color & 0xF]});
       }
     }
     textRow += "\n";
+    // rangeBG.appendText("\n");
+    rangeFG.appendText("\n");
     console.log(textRow);
-    range.appendText(textRow);
   }
-  insertEndoom(range);
+
+  // insertEndoom(rangeBG);
+  insertEndoom(rangeFG);
 }
 
 function updateTitle(title_ptr, titleSize) {

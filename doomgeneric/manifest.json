@@ -1,0 +1,6 @@
+{
+  "name": "Doom Start 2",
+  "entrypoint": "https://canvadoom2.vercel.app/",
+  "permissions": [],
+  "capabilities": []
+}
